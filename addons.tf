@@ -23,10 +23,10 @@ module "eks_blueprints_addons" {
     kube-proxy = {
       preserve = true
     }
-    amazon-cloudwatch-observability = {
-      preserve                 = true
-      service_account_role_arn = aws_iam_role.cloudwatch_observability_role.arn
-    }
+    #amazon-cloudwatch-observability = {
+    #  preserve                 = true
+    #  service_account_role_arn = aws_iam_role.cloudwatch_observability_role.arn
+    #}
   }
 
   #---------------------------------------
@@ -90,4 +90,21 @@ resource "aws_iam_role" "cloudwatch_observability_role" {
 resource "aws_iam_role_policy_attachment" "cloudwatch_observability_policy_attachment" {
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
   role       = aws_iam_role.cloudwatch_observability_role.name
+}
+
+resource "aws_eks_addon" "cloudwatch" {
+  cluster_name = module.eks.cluster_name
+  addon_name   = "amazon-cloudwatch-observability"
+  
+  # Force dependency on the load balancer controller
+  depends_on = [
+    module.eks_blueprints_addons
+  ]
+  
+  # Add a sleep before creating this resource
+  provisioner "local-exec" {
+    command = "sleep 60"  # Wait 60 seconds for the Load Balancer Controller to be ready
+  }
+  
+  service_account_role_arn = aws_iam_role.cloudwatch_observability_role.arn
 }
