@@ -1,5 +1,4 @@
 
-```markdown
 # Universal EKS Terraform Base
 
 A production-ready Terraform configuration for AWS EKS with static node groups, proper networking, and essential add-ons.
