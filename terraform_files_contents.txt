@@ -710,7 +710,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.0"
 
-  name = "\${local.name}-vpc"
+  name = "${local.name}-vpc"
   cidr = local.vpc_cidr
   azs  = local.azs
 
@@ -740,12 +740,12 @@ module "vpc" {
   # These allow the AWS Load Balancer Controller to find the right subnets
   public_subnet_tags = {
     "kubernetes.io/role/elb" = 1
-    "kubernetes.io/cluster/\${local.name}" = "shared"
+    "kubernetes.io/cluster/${local.name}" = "shared"
   }
 
   private_subnet_tags = {
     "kubernetes.io/role/internal-elb" = 1
-    "kubernetes.io/cluster/\${local.name}" = "shared"
+    "kubernetes.io/cluster/${local.name}" = "shared"
   }
   
   tags = var.tags
@@ -756,7 +756,7 @@ module "vpc" {
 resource "aws_security_group" "fsx" {
   count = var.create_fsx_security_group ? 1 : 0
   
-  name        = "\${local.name}-fsx-security-group"
+  name        = "${local.name}-fsx-security-group"
   description = "Security group for FSx Lustre filesystem"
   vpc_id      = module.vpc.vpc_id
 
