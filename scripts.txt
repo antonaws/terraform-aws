@@ -1,0 +1,7 @@
+terraform destroy \
+  -target=module.eks \
+  -target=module.vpc \
+  -target=aws_security_group.fsx \
+  -target=aws_fsx_lustre_file_system.this \
+  -target=aws_fsx_data_repository_association.this \
+  -auto-approve

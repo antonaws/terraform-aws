@@ -1,0 +1,17 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "kms:CreateAlias",
+          "kms:DeleteAlias",
+          "s3:*",
+          "rds:*",
+          "ec2:*"
+        ],
+        "Resource": "*"
+      }
+    ]
+  }
+  

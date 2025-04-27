@@ -1,0 +1,70 @@
+resource "aws_iam_policy" "terraform_s3_permissions" {
+  name        = "terraform_s3_permissions_policy"
+  description = "Policy allowing Terraform to manage S3 bucket properties including versioning"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "s3:GetBucketVersioning",
+        "s3:PutBucketVersioning",
+        "s3:GetBucketAcl",
+        "s3:GetBucketPolicy",
+        "s3:PutBucketPolicy",
+        "s3:ListBucket",
+        "s3:*Object",
+      ]
+      Resource = [
+        "arn:aws:s3:::slinky-on-eks-fsx-*",
+        "arn:aws:s3:::slinky-on-eks-fsx-*/*"
+      ]
+    }]
+  })
+}
+
+resource "aws_iam_user_policy_attachment" "terraform_s3_permissions_attach" {
+  user       = "container"
+  policy_arn = aws_iam_policy.terraform_s3_permissions.arn
+}
+
+
+# Consolidated IAM Policy for Terraform managing S3 and RDS
+resource "aws_iam_policy" "terraform_s3_rds_access" {
+  name        = "terraform_s3_rds_access_policy"
+  description = "Consolidated Terraform policy for managing S3 buckets and RDS resources"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:*",
+          "rds:*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Attach consolidated policy to IAM user "container"
+resource "aws_iam_user_policy_attachment" "terraform_s3_rds_access_attachment" {
+  user       = "container"
+  policy_arn = aws_iam_policy.terraform_s3_rds_access.arn
+}
+
+# Optional: General Terraform administrative permissions (excluding S3/RDS)
+resource "aws_iam_policy" "terraform_admin_permissions" {
+  name        = "terraform_admin_permissions_policy"
+  description = "General administrative permissions for Terraform"
+
+  policy = file("${path.module}/terraform-permissions.json")
+}
+
+# Attach general administrative policy
+resource "aws_iam_user_policy_attachment" "terraform_admin_attachment" {
+  user       = "container"
+  policy_arn = aws_iam_policy.terraform_admin_permissions.arn
+}

@@ -1,0 +1,146 @@
+apiVersion: slinky.slurm.net/v1alpha1
+kind: NodeSet
+metadata:
+  name: slurm-compute-debug
+  namespace: slurm
+  labels:
+    app.kubernetes.io/component: compute
+    app.kubernetes.io/instance: slurm-compute-debug
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: slurmd
+    app.kubernetes.io/version: "24.05"
+    helm.sh/chart: slurm-0.1.0
+spec:
+  clusterName: slurm
+  replicas: 1
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: slurm-compute-debug
+      app.kubernetes.io/name: slurmd
+  serviceName: slurm-compute
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: slurmd
+      labels:
+        app.kubernetes.io/component: compute
+        app.kubernetes.io/instance: slurm-compute-debug
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: slurmd
+        app.kubernetes.io/version: "24.05"
+        helm.sh/chart: slurm-0.1.0
+    spec:
+      automountServiceAccountToken: false
+      hostname: slurm-compute-debug
+      nodeSelector:
+        kubernetes.io/os: linux
+      initContainers:
+      - name: init
+        image: ghcr.io/slinkyproject/slurmd:24.05-ubuntu-24.04
+        imagePullPolicy: IfNotPresent
+        command:
+        - bash
+        - -c
+        - |
+          set -euo pipefail
+          dir=/var/spool/slurmd
+          mkdir -p "$dir"
+          chown -v "slurm:slurm" "$dir"
+          chmod -v 700 "$dir"
+
+          dir=/var/spool/slurmctld
+          mkdir -p "$dir"
+          chown -v "slurm:slurm" "$dir"
+          chmod -v 700 "$dir"
+
+          SLURM_MOUNT=/mnt/slurm
+          SLURM_DIR=/mnt/etc/slurm
+          mkdir -p "$SLURM_DIR"
+          find "${SLURM_MOUNT}" -type f -name "*.conf" -print0 | xargs -0r cp -vt "${SLURM_DIR}"
+          find "${SLURM_MOUNT}" -type f -name "*.key" -print0 | xargs -0r cp -vt "${SLURM_DIR}"
+
+          find "${SLURM_DIR}" -type f -print0 | xargs -0r chown -v "slurm:slurm"
+          find "${SLURM_DIR}" -type f -name "*.conf" -print0 | xargs -0r chmod -v 644
+          find "${SLURM_DIR}" -type f -name "*.key" -print0 | xargs -0r chmod -v 600
+        volumeMounts:
+        - mountPath: /mnt/slurm
+          name: slurm-config
+        - mountPath: /mnt/etc/slurm
+          name: etc-slurm
+      containers:
+      - name: slurmd
+        image: ghcr.io/slinkyproject/slurmd:24.05-ubuntu-24.04
+        imagePullPolicy: IfNotPresent
+        args:
+        - -D
+        - -Z
+        - --conf-server
+        - slurm-controller-0.slurm-controller.slurm.svc.cluster.local:6817
+        - --conf
+        - Features=debug Weight=1
+        env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/bash
+              - -c
+              - |
+                scontrol update nodename=$(hostname) state=down reason=preStop &&
+                scontrol delete nodename=$(hostname);
+        ports:
+        - containerPort: 6818
+          name: slurmd
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - scontrol
+            - show
+            - slurmd
+        startupProbe:
+          exec:
+            command:
+            - scontrol
+            - show
+            - slurmd
+        resources: {}
+        securityContext:
+          capabilities:
+            add:
+            - BPF
+            - NET_ADMIN
+            - SYS_ADMIN
+            - SYS_NICE
+          privileged: true
+        volumeMounts:
+        - mountPath: /etc/slurm
+          name: etc-slurm
+        - mountPath: /var/run
+          name: run
+      volumes:
+      - emptyDir:
+          medium: Memory
+        name: etc-slurm
+      - emptyDir: {}
+        name: run
+      - emptyDir: {}
+        name: authsocket
+      - name: slurm-config
+        projected:
+          defaultMode: 384
+          sources:
+          - secret:
+              name: slurm-auth-key
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 20%
+      partition: 0
+      paused: false
+    type: RollingUpdate
