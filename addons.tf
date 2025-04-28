@@ -96,15 +96,28 @@ resource "aws_eks_addon" "cloudwatch" {
   cluster_name = module.eks.cluster_name
   addon_name   = "amazon-cloudwatch-observability"
   
-  # Force dependency on the load balancer controller
-  depends_on = [
-    module.eks_blueprints_addons
-  ]
+  # Avoid recreating on each apply
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "PRESERVE"
   
-  # Add a sleep before creating this resource
-  provisioner "local-exec" {
-    command = "sleep 60"  # Wait 60 seconds for the Load Balancer Controller to be ready
+  # Add timeout to wait longer for creation
+  timeouts {
+    create = "30m"
+    update = "30m"
+    delete = "15m"
   }
   
   service_account_role_arn = aws_iam_role.cloudwatch_observability_role.arn
+  
+  # Make sure all prerequisites are ready
+  depends_on = [
+    module.eks_blueprints_addons,
+    time_sleep.wait_for_addons
+  ]
+}
+
+# Add this resource to ensure other add-ons are ready before CloudWatch
+resource "time_sleep" "wait_for_addons" {
+  depends_on = [module.eks_blueprints_addons]
+  create_duration = "90s"
 }

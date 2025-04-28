@@ -8,11 +8,11 @@ provider "kubernetes" {
   token                  = data.aws_eks_cluster_auth.this.token
 }
 
-# ECR always authenticates with `us-east-2` region
+# ECR always authenticates with `us-east-1` region
 # Docs -> https://docs.aws.amazon.com/AmazonECR/latest/public/public-registries.html
 provider "aws" {
   alias  = "ecr"
-  region = "us-east-2"
+  region = "us-east-1"
 }
 
 provider "helm" {

@@ -67,3 +67,9 @@ variable "cluster_name" {
   type        = string
   default     = "eks-static-cluster"
 }
+
+variable "create_fsx_resources" {
+  description = "Whether to create FSx for Lustre resources"
+  type        = bool
+  default     = false  # Set default to false to skip FSx resources
+}
