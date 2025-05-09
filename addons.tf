@@ -65,7 +65,7 @@ module "eks_data_addons" {
 # EKS Amazon CloudWatch Observability Role
 #---------------------------------------------------------------
 resource "aws_iam_role" "cloudwatch_observability_role" {
-  name = "eks-cloudwatch-agent-role"
+  name = "eks-dynamo-cloudwatch-agent-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
