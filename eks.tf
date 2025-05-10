@@ -147,7 +147,7 @@ module "eks" {
       desired_size = 2
 
       # Proper GPU configuration
-      ami_type       = "AL2_x86_64_GPU"
+      ami_type       = "AL2023_x86_64_NVIDIA"
       instance_types = ["g6e.xlarge"] # G6e GPU instance type
 
       labels = {
